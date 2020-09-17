@@ -10,7 +10,26 @@ const machines = [
 /**
  * Returns a machine at random for a given request.
  */
-const choose = () => machines[Math.floor(Math.random() * machines.length)]
+const chooseMachine = () =>
+  machines[Math.floor(Math.random() * machines.length)]
+
+/**
+ * Modify an incoming request object to re-route it to one of our machines, and update some of its
+ * parameters. We pass the true hostname of the initial request as an X-Hostname header.
+ * @param {*} req
+ */
+const modifyRequest = req => {
+  var url = new URL(req.url)
+  url.hostname = chooseMachine()
+  return new Request(
+    url.toString(),
+    new Request(req, {
+      headers: {
+        'X-Hostname': req.url,
+      },
+    }),
+  )
+}
 
 /**
  * Handle an incoming request by routing it to one of the candidate machines. Since this balancer
@@ -19,9 +38,7 @@ const choose = () => machines[Math.floor(Math.random() * machines.length)]
  * @param {*} req
  */
 const handle = async req => {
-  var url = new URL(req.url)
-  url.hostname = choose()
-  return fetch(url)
+  return fetch(modifyRequest(req))
 }
 
 /**
